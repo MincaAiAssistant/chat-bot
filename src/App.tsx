@@ -128,7 +128,7 @@ function App() {
             setIsProcessing(false);
             resolve();
           }
-        }, 10);
+        }, 2);
       });
     } catch {
       setIsProcessing(false);
