@@ -165,6 +165,24 @@ function App() {
   }, [chatIdError, messagesError]);
 
   useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.parent.location.origin) return;
+      if (event.data.type === 'CCI_CHAT_CLOSE' && chatIdData?.chatId) {
+        const url = `${BASE_URL}/chat/${chatIdData.chatId}/last_activity`;
+        const blob = new Blob([JSON.stringify({})], {
+          type: 'application/json',
+        });
+        navigator.sendBeacon(url, blob);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [chatIdData]);
+
+  useEffect(() => {
     const handleUnload = () => {
       if (chatIdData?.chatId) {
         const url = `${BASE_URL}/chat/${chatIdData.chatId}/last_activity`;
