@@ -29,6 +29,10 @@ export function ChatMessages({
     ? [...messages, streamingMessage]
     : messages;
 
+  const isErrorMessage = (content: string) => {
+    return content.startsWith('❌');
+  };
+
   return (
     <div className="flex-1 p-4 overflow-y-auto">
       <div className="mx-auto space-y-4">
@@ -57,9 +61,12 @@ export function ChatMessages({
               </div>
               <div
                 className={cn(
+                  'rounded-lg px-4 py-2 max-w-[80%]',
                   message.role === 'customer'
-                    ? 'bg-blue-500 text-white max-w-[80%] rounded-md px-4 py-2'
-                    : 'text-gray-900  max-w-[100%] w-fit'
+                    ? 'bg-blue-500 text-white'
+                    : isErrorMessage(message.content)
+                    ? 'bg-red-50 text-red-600 border border-red-200'
+                    : 'bg-gray-100 text-gray-900'
                 )}
               >
                 <div className="prose prose-sm sm:prose lg:prose-lg prose-blue max-w-none">
@@ -81,11 +88,13 @@ export function ChatMessages({
                         ),
                         p: ({ children }) => (
                           <p
-                            className={`${
+                            className={cn(
                               message.role === 'customer'
                                 ? 'text-white'
+                                : isErrorMessage(message.content)
+                                ? 'text-red-600'
                                 : 'text-gray-800'
-                            }`}
+                            )}
                           >
                             {children}
                           </p>
