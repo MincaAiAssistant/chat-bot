@@ -27,12 +27,15 @@ function App() {
     null
   );
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
   const { data: chatIdData, error: chatIdError } = useQuery({
     queryKey: ['chatId'],
     queryFn: () => getChatId(),
     refetchOnMount: true,
     staleTime: 0,
   });
+
   const {
     data: messagesData,
     isLoading: isLoadingMessages,
@@ -44,13 +47,13 @@ function App() {
         throw new Error('chatId is undefined');
       }
       const chatId = chatIdData?.chatId;
-
       return getChatMessages(chatId);
     },
     enabled: !!chatIdData,
     refetchOnMount: true,
     staleTime: 0,
   });
+
   const addMessageMutation = useMutation({
     mutationFn: ({
       chatId,
@@ -65,7 +68,6 @@ function App() {
     if (!content.trim()) return;
     setError(null);
 
-    // Create user message
     const userMessage: Message = {
       messageid: `temp-${Date.now()}`,
       created_at: new Date(),
@@ -73,7 +75,6 @@ function App() {
       content: content,
     };
 
-    // Add user message to message list
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage('');
     setIsProcessing(true);
@@ -90,7 +91,6 @@ function App() {
       });
       const fullContent = aiResponse.reply;
 
-      // Stream the assistant message
       const messageId = `stream-${Date.now()}`;
       let currentIndex = 0;
 
@@ -144,6 +144,8 @@ function App() {
       ]);
     }
   };
+
+  // Combined useEffect for messagesData and error handling
   useEffect(() => {
     if (messagesData) {
       const welcomeMessage: Message = {
@@ -156,44 +158,13 @@ function App() {
       setMessages([welcomeMessage, ...messagesData]);
       setIsProcessing(false);
     }
-  }, [messagesData]);
 
-  useEffect(() => {
     if (chatIdError || messagesError) {
       setError('Failed to load chat. Please refresh the page.');
     }
-  }, [chatIdError, messagesError]);
+  }, [messagesData, chatIdError, messagesError]);
 
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const allowedOrigins = [
-        'http://localhost:3000',
-        'https://your-parent-domain.com',
-      ];
-
-      if (!allowedOrigins.includes(event.origin)) {
-        console.warn(
-          `Received message from unauthorized origin: ${event.origin}`
-        );
-        return;
-      }
-
-      if (event.data.type === 'CCI_CHAT_CLOSE' && chatIdData?.chatId) {
-        const url = `${BASE_URL}/chat/${chatIdData.chatId}/last_activity`;
-        const blob = new Blob([JSON.stringify({})], {
-          type: 'application/json',
-        });
-        navigator.sendBeacon(url, blob);
-        setTimeout(() => {}, 1000);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [chatIdData]);
-
+  // useEffect for unload event
   useEffect(() => {
     const handleUnload = () => {
       if (chatIdData?.chatId) {
@@ -210,13 +181,79 @@ function App() {
       window.removeEventListener('unload', handleUnload);
     };
   }, [chatIdData]);
+  const isLoading = (isLoadingMessages && !streamingMessage) || isClosing;
 
-  const isLoading = isLoadingMessages && !streamingMessage;
+  // useEffect for message handling and isLoading synchronization
+  useEffect(() => {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://www.franciamexico.com',
+    ];
+
+    // Handle messages from parent window
+    const handleMessage = (event: MessageEvent) => {
+      if (!allowedOrigins.includes(event.origin)) {
+        console.warn(
+          `Received message from unauthorized origin: ${event.origin}`
+        );
+        return;
+      }
+
+      if (event.data.type === 'CCI_CHAT_CLOSE' && chatIdData?.chatId) {
+        setIsClosing(true);
+        window.parent.postMessage(
+          { type: 'LOADING_START' },
+          allowedOrigins.includes('https://www.franciamexico.com')
+            ? 'https://www.franciamexico.com'
+            : 'http://localhost:3000'
+        );
+        const url = `${BASE_URL}/chat/${chatIdData.chatId}/last_activity`;
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              setError('Failed to update last activity. Please try again.');
+            }
+          })
+          .catch((err) => {
+            console.error('Error calling last_activity API:', err);
+            setError('Failed to update last activity. Please try again.');
+          })
+          .finally(() => {
+            setIsClosing(false);
+            window.parent.postMessage(
+              { type: 'LOADING_END' },
+              allowedOrigins.includes('https://www.franciamexico.com')
+                ? 'https://www.franciamexico.com'
+                : 'http://localhost:3000'
+            );
+          });
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // Synchronize isLoading with parent window
+    window.parent.postMessage(
+      { type: isLoading ? 'LOADING_START' : 'LOADING_END' },
+      allowedOrigins.includes('https://www.franciamexico.com')
+        ? 'https://www.franciamexico.com'
+        : 'http://localhost:3000'
+    );
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [chatIdData, isLoading]);
 
   return (
     <>
       <div className="bg-background shadow-xl border border-border z-50 transition-all duration-300 animate-slide-up flex flex-col h-screen w-full">
-        {/* HEADER - stays fixed */}
         <div className="bg-[#079cdc] flex justify-between items-center h-[50px] px-4 py-2 flex-shrink-0">
           <div className="flex gap-2 items-center">
             <div className="rounded-full bg-white p-1 flex">
@@ -228,7 +265,6 @@ function App() {
           </div>
         </div>
 
-        {/* BODY - scrollable content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 text-sm">
