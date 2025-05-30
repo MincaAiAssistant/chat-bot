@@ -52,7 +52,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="border-gray-200 bg-gray-50 px-4 pt-2 pb-1">
+    <div className="border-gray-200 bg-gray-50 p-3">
       <div className="mx-auto">
         <form
           onSubmit={handleSubmit}
@@ -65,7 +65,7 @@ export function ChatInput({
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your question"
-              className="min-h-[56px] max-h-[192px] resize-none !text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4 bg-transparent"
+              className="min-h-[48px] max-h-[192px] resize-none !text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-3 bg-transparent"
               style={{ overflow: 'auto' }}
               disabled={isLoading}
             />
