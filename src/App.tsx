@@ -166,13 +166,25 @@ function App() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.parent.location.origin) return;
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'https://your-parent-domain.com',
+      ];
+
+      if (!allowedOrigins.includes(event.origin)) {
+        console.warn(
+          `Received message from unauthorized origin: ${event.origin}`
+        );
+        return;
+      }
+
       if (event.data.type === 'CCI_CHAT_CLOSE' && chatIdData?.chatId) {
         const url = `${BASE_URL}/chat/${chatIdData.chatId}/last_activity`;
         const blob = new Blob([JSON.stringify({})], {
           type: 'application/json',
         });
         navigator.sendBeacon(url, blob);
+        setTimeout(() => {}, 1000);
       }
     };
 
