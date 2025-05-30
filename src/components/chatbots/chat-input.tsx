@@ -75,12 +75,12 @@ export function ChatInput({
             <Button
               type="submit"
               disabled={value.trim() === '' || isLoading}
-              className="rounded-full h-9 w-9 p-0 flex items-center justify-center"
+              className="rounded-full h-9 w-9 p-0 flex items-center justify-center bg-sky-500 hover:bg-sky-600 "
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <SendIcon className="h-5 w-5" />
+                <SendIcon className="h-5 w-5 text-white" />
               )}
             </Button>
           </div>

@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
-import { ClientMessage } from '@/lib/types';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import TypingIndicator from './typing-indicator';
+import { User } from 'lucide-react';
+import remarkBreaks from 'remark-breaks';
+import { Message } from '@/lib/types';
 
 interface ChatMessagesProps {
-  messages: ClientMessage[];
-  streamingMessage: ClientMessage | null;
+  messages: Message[];
+  streamingMessage: Message | null;
   isProcessing: boolean;
 }
 
@@ -34,25 +36,37 @@ export function ChatMessages({
           <div key={message.messageid}>
             <div
               className={cn(
-                'flex flex-col w-full',
-                message.role === 'user'
-                  ? 'justify-self-end place-items-end'
-                  : 'justify-start'
+                'flex items-start gap-3 w-full',
+                message.role === 'customer' ? 'flex-row-reverse' : 'flex-row'
               )}
             >
               <div
+                className={`flex-shrink-0 w-8 h-8 rounded-full overflow-hidden`}
+              >
+                {message.role === 'customer' ? (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center ">
+                    <User className="w-4 h-4 text-gray-500" />
+                  </div>
+                ) : (
+                  <img
+                    src="/cci-logo.png"
+                    alt="CCI Logo"
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+              <div
                 className={cn(
-                  'rounded-md px-4 py-2',
-                  message.role === 'user'
-                    ? 'bg-blue-500 text-white max-w-[80%]'
-                    : 'text-gray-900  bg-[#f7f8ff] max-w-[100%] w-fit'
+                  message.role === 'customer'
+                    ? 'bg-blue-500 text-white max-w-[80%] rounded-md px-4 py-2'
+                    : 'text-gray-900  max-w-[100%] w-fit'
                 )}
               >
                 <div className="prose prose-sm sm:prose lg:prose-lg prose-blue max-w-none">
                   <div className="leading-relaxed space-y-4">
                     <ReactMarkdown
                       children={message.content}
-                      remarkPlugins={[remarkGfm]}
+                      remarkPlugins={[remarkGfm, remarkBreaks]}
                       rehypePlugins={[rehypeHighlight]}
                       components={{
                         h1: ({ children }) => (
@@ -68,7 +82,7 @@ export function ChatMessages({
                         p: ({ children }) => (
                           <p
                             className={`${
-                              message.role === 'user'
+                              message.role === 'customer'
                                 ? 'text-white'
                                 : 'text-gray-800'
                             }`}

@@ -1,14 +1,9 @@
-import {
-  ClientChat,
-  ClientMessage,
-  CustomerChat,
-  CustomerMessage,
-} from '@/lib/types';
+import { Message } from '@/lib/types';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+export const BASE_URL = 'https://api.mincaai-franciamexico.com';
 
-const getClientChats = async (): Promise<ClientChat[]> => {
-  const response = await fetch(`${BASE_URL}/customer-chat`, {
+const getChatId = async (): Promise<{ chatId: string }> => {
+  const response = await fetch(`${BASE_URL}/chat/getChatId`, {
     method: 'GET',
   });
 
@@ -19,15 +14,10 @@ const getClientChats = async (): Promise<ClientChat[]> => {
   return response.json();
 };
 
-const getClientChatMessages = async (
-  sessionId: string
-): Promise<ClientMessage[]> => {
-  const response = await fetch(
-    `${BASE_URL}/customer-chat/${sessionId}/message`,
-    {
-      method: 'GET',
-    }
-  );
+const getChatMessages = async (chatID: string): Promise<Message[]> => {
+  const response = await fetch(`${BASE_URL}/chat/${chatID}/message`, {
+    method: 'GET',
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -35,18 +25,16 @@ const getClientChatMessages = async (
 
   return response.json();
 };
-
-const initClientChat = async (
-  formData: FormData
-): Promise<{
-  customer_chat: CustomerChat;
-  sessionid: string;
-  user: CustomerMessage;
-  assistant: CustomerMessage;
-}> => {
-  const response = await fetch(`${BASE_URL}/customer-chat/init`, {
+const createMessage = async (
+  chatId: string,
+  message: string
+): Promise<{ reply: string }> => {
+  const response = await fetch(`${BASE_URL}/chat/${chatId}/message`, {
     method: 'POST',
-    body: formData,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
   });
 
   if (!response.ok) {
@@ -56,17 +44,13 @@ const initClientChat = async (
   return response.json();
 };
 
-const addClientMessage = async (
-  formData: FormData,
-  sessionId: string
-): Promise<{ user: ClientMessage; assistant: ClientMessage }> => {
-  const response = await fetch(
-    `${BASE_URL}/customer-chat/${sessionId}/message`,
-    {
-      method: 'POST',
-      body: formData,
-    }
-  );
+const lastActivity = async (chatId: string): Promise<{ status: string }> => {
+  const response = await fetch(`${BASE_URL}/chat/${chatId}/last_activity`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -74,10 +58,4 @@ const addClientMessage = async (
 
   return response.json();
 };
-
-export {
-  getClientChats,
-  getClientChatMessages,
-  initClientChat,
-  addClientMessage,
-};
+export { createMessage, getChatId, getChatMessages, lastActivity };
