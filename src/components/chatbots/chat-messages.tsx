@@ -30,7 +30,7 @@ export function ChatMessages({
     : messages;
 
   const isErrorMessage = (content: string) => {
-    return content.startsWith('❌');
+    return content.startsWith('Failed');
   };
 
   return (
