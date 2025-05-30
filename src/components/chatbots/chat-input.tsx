@@ -52,7 +52,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="border-gray-200 bg-gray-50 px-5 pt-2 pb-1">
+    <div className="border-gray-200 bg-gray-50 px-4 pt-2 pb-1">
       <div className="mx-auto">
         <form
           onSubmit={handleSubmit}
@@ -85,8 +85,6 @@ export function ChatInput({
             </Button>
           </div>
         </form>
-
-        <div className="py-2.5 text-[13px] text-gray-900 text-center"></div>
       </div>
     </div>
   );
