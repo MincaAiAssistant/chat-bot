@@ -183,14 +183,13 @@ function App() {
   }, [chatIdData]);
   const isLoading = (isLoadingMessages && !streamingMessage) || isClosing;
 
-  // useEffect for message handling and isLoading synchronization
   useEffect(() => {
     const allowedOrigins = [
+      'https://cci-chat.netlify.app',
       'http://localhost:3000',
       'https://www.franciamexico.com',
     ];
 
-    // Handle messages from parent window
     const handleMessage = (event: MessageEvent) => {
       if (!allowedOrigins.includes(event.origin)) {
         console.warn(
@@ -201,12 +200,6 @@ function App() {
 
       if (event.data.type === 'CCI_CHAT_CLOSE' && chatIdData?.chatId) {
         setIsClosing(true);
-        window.parent.postMessage(
-          { type: 'LOADING_START' },
-          allowedOrigins.includes('https://www.franciamexico.com')
-            ? 'https://www.franciamexico.com'
-            : 'http://localhost:3000'
-        );
         const url = `${BASE_URL}/chat/${chatIdData.chatId}/last_activity`;
         fetch(url, {
           method: 'POST',
@@ -226,19 +219,13 @@ function App() {
           })
           .finally(() => {
             setIsClosing(false);
-            window.parent.postMessage(
-              { type: 'LOADING_END' },
-              allowedOrigins.includes('https://www.franciamexico.com')
-                ? 'https://www.franciamexico.com'
-                : 'http://localhost:3000'
-            );
+            window.parent.postMessage({ type: 'LOADING_END' }, event.origin);
           });
       }
     };
 
     window.addEventListener('message', handleMessage);
 
-    // Synchronize isLoading with parent window
     window.parent.postMessage(
       { type: isLoading ? 'LOADING_START' : 'LOADING_END' },
       allowedOrigins.includes('https://www.franciamexico.com')
