@@ -58,7 +58,7 @@ export function ChatInput({
           onSubmit={handleSubmit}
           className="relative rounded-md shadow-md border border-gray-200 bg-white overflow-hidden"
         >
-          <div className="bg-white rounded-md">
+          <div className="bg-white rounded-md pr-14">
             <Textarea
               ref={textareaRef}
               value={value}
