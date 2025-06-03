@@ -2,16 +2,11 @@ import { Message } from '@/lib/types';
 
 export const BASE_URL = 'https://api.mincaai-franciamexico.com';
 
-const getChatId = async (): Promise<{ chatId: string }> => {
-  const response = await fetch(`${BASE_URL}/chat/getChatId`, {
-    method: 'GET',
+const createChatId = async (): Promise<{ chatId: string }> => {
+  const res = await fetch(`${BASE_URL}/chat/createChatId?type=web`, {
+    method: 'POST',
   });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return response.json();
+  return res.json();
 };
 
 const getChatMessages = async (chatID: string): Promise<Message[]> => {
@@ -58,4 +53,4 @@ const lastActivity = async (chatId: string): Promise<{ status: string }> => {
 
   return response.json();
 };
-export { createMessage, getChatId, getChatMessages, lastActivity };
+export { createMessage, createChatId, getChatMessages, lastActivity };

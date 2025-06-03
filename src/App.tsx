@@ -6,14 +6,13 @@ import { Message } from './lib/types';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   BASE_URL,
+  createChatId,
   createMessage,
-  getChatId,
   getChatMessages,
 } from './services/client-assistant-services';
 
 function App() {
   const [inputMessage, setInputMessage] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       messageid: `temp-${Date.now()}`,
@@ -27,29 +26,48 @@ function App() {
     null
   );
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const [chatId, setChatId] = useState<string | null>(() =>
+    sessionStorage.getItem('chatId')
+  );
 
-  const { data: chatIdData, error: chatIdError } = useQuery({
-    queryKey: ['chatId'],
-    queryFn: () => getChatId(),
-    refetchOnMount: true,
-    staleTime: 0,
-  });
+  useEffect(() => {
+    const initializeChatId = async () => {
+      if (!sessionStorage.getItem('chatId')) {
+        try {
+          const { chatId } = await createChatId();
+          sessionStorage.setItem('chatId', chatId);
+          setChatId(chatId);
+        } catch (error) {
+          console.error('Failed to create chatId:', error);
+          // Optionally set a fallback or error message
+          setMessages((prev) => [
+            ...prev,
+            {
+              messageid: `error-${Date.now()}`,
+              created_at: new Date(),
+              role: 'agent',
+              content: 'Failed to initialize chat. Please try again.',
+            },
+          ]);
+        }
+      }
+    };
+    initializeChatId();
+  }, []);
 
   const {
     data: messagesData,
     isLoading: isLoadingMessages,
     error: messagesError,
   } = useQuery({
-    queryKey: ['messages', chatIdData],
+    queryKey: ['messages', chatId],
     queryFn: () => {
-      if (!chatIdData) {
+      if (!chatId) {
         throw new Error('chatId is undefined');
       }
-      const chatId = chatIdData?.chatId;
       return getChatMessages(chatId);
     },
-    enabled: !!chatIdData,
+    enabled: !!chatId,
     refetchOnMount: true,
     staleTime: 0,
   });
@@ -66,7 +84,26 @@ function App() {
 
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
-    setError(null);
+
+    const sessionChatId = sessionStorage.getItem('chatId');
+    if (!sessionChatId) {
+      try {
+        const { chatId } = await createChatId();
+        sessionStorage.setItem('chatId', chatId);
+        setChatId(chatId);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            messageid: `error-${Date.now()}`,
+            created_at: new Date(),
+            role: 'agent',
+            content: 'Failed to initialize chat. Please try again.',
+          },
+        ]);
+        return;
+      }
+    }
 
     const userMessage: Message = {
       messageid: `temp-${Date.now()}`,
@@ -80,14 +117,12 @@ function App() {
     setIsProcessing(true);
 
     try {
-      const chatId = chatIdData?.chatId;
-      if (!chatId) {
-        throw new Error('Chat ID is not available');
-      }
+      const chatIdToUse = sessionStorage.getItem('chatId');
+      if (!chatIdToUse) throw new Error('Chat ID missing from session');
 
       const aiResponse = await addMessageMutation.mutateAsync({
         user_message: content,
-        chatId: chatId,
+        chatId: chatIdToUse,
       });
       const fullContent = aiResponse.reply;
 
@@ -132,20 +167,18 @@ function App() {
       });
     } catch {
       setIsProcessing(false);
-      setError('Failed to send message. Please try again.');
       setMessages((prev) => [
         ...prev,
         {
           messageid: `error-${Date.now()}`,
           created_at: new Date(),
           role: 'agent',
-          content: '❌ Failed to send message. Please try again.',
+          content: 'Failed to send message. Please try again.',
         },
       ]);
     }
   };
 
-  // Combined useEffect for messagesData and error handling
   useEffect(() => {
     if (messagesData) {
       const welcomeMessage: Message = {
@@ -158,17 +191,13 @@ function App() {
       setMessages([welcomeMessage, ...messagesData]);
       setIsProcessing(false);
     }
+  }, [messagesData, messagesError]);
 
-    if (chatIdError || messagesError) {
-      setError('Failed to load chat. Please refresh the page.');
-    }
-  }, [messagesData, chatIdError, messagesError]);
-
-  // useEffect for unload event
   useEffect(() => {
-    const handleUnload = () => {
-      if (chatIdData?.chatId) {
-        const url = `${BASE_URL}/chat/${chatIdData.chatId}/last_activity`;
+    const handleBeforeUnload = () => {
+      const sessionChatId = sessionStorage.getItem('chatId');
+      if (sessionChatId) {
+        const url = `${BASE_URL}/chat/${sessionChatId}/last_activity`;
         const blob = new Blob([JSON.stringify({})], {
           type: 'application/json',
         });
@@ -176,112 +205,50 @@ function App() {
       }
     };
 
-    window.addEventListener('unload', handleUnload);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
-      window.removeEventListener('unload', handleUnload);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [chatIdData]);
-  const isLoading = (isLoadingMessages && !streamingMessage) || isClosing;
+  }, []);
 
-  useEffect(() => {
-    const allowedOrigins = [
-      'https://cci-chat.netlify.app',
-      'http://localhost:3000',
-      'https://www.franciamexico.com',
-    ];
-
-    const handleMessage = (event: MessageEvent) => {
-      if (!allowedOrigins.includes(event.origin)) {
-        console.warn(
-          `Received message from unauthorized origin: ${event.origin}`
-        );
-        return;
-      }
-
-      if (event.data.type === 'CCI_CHAT_CLOSE' && chatIdData?.chatId) {
-        setIsClosing(true);
-        const url = `${BASE_URL}/chat/${chatIdData.chatId}/last_activity`;
-        fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        })
-          .then((response) => {
-            if (!response.ok) {
-              setError('Failed to update last activity. Please try again.');
-            }
-          })
-          .catch((err) => {
-            console.error('Error calling last_activity API:', err);
-            setError('Failed to update last activity. Please try again.');
-          })
-          .finally(() => {
-            setIsClosing(false);
-            window.parent.postMessage({ type: 'LOADING_END' }, event.origin);
-          });
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    window.parent.postMessage(
-      { type: isLoading ? 'LOADING_START' : 'LOADING_END' },
-      allowedOrigins.includes('https://www.franciamexico.com')
-        ? 'https://www.franciamexico.com'
-        : 'http://localhost:3000'
-    );
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [chatIdData, isLoading]);
+  const isLoading = isLoadingMessages && !streamingMessage;
 
   return (
-    <>
-      <div className="bg-background shadow-xl border border-border z-50 transition-all duration-300 animate-slide-up flex flex-col h-screen w-full">
-        <div className="bg-[#079cdc] flex justify-between items-center h-[50px] px-4 py-2 flex-shrink-0">
-          <div className="flex gap-2 items-center">
-            <div className="rounded-full bg-white p-1 flex">
-              <img src="/cci-logo.png" alt="CCI Logo" className="h-6" />
-            </div>
-            <div className="text-white text-sm font-semibold">
-              Assistant CCI France México
-            </div>
+    <div className="bg-background shadow-xl z-50 transition-all duration-300 animate-slide-up flex flex-col h-screen w-full">
+      <div className="bg-[#079cdc] flex justify-between items-center h-[50px] px-4 py-2 flex-shrink-0">
+        <div className="flex gap-2 items-center">
+          <div className="rounded-full bg-white p-1 flex">
+            <img src="/cci-logo.png" alt="CCI Logo" className="h-6" />
+          </div>
+          <div className="text-white text-sm font-semibold">
+            Assistant CCI France México
           </div>
         </div>
-
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 text-sm">
-              {error}
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto">
-              <ChatMessages
-                messages={messages}
-                streamingMessage={streamingMessage}
-                isProcessing={isProcessing}
-              />
-            </div>
-          )}
-
-          <ChatInput
-            value={inputMessage}
-            onChange={setInputMessage}
-            onSend={handleSendMessage}
-            isLoading={isProcessing}
-          />
-        </div>
       </div>
-    </>
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto">
+            <ChatMessages
+              messages={messages}
+              streamingMessage={streamingMessage}
+              isProcessing={isProcessing}
+            />
+          </div>
+        )}
+
+        <ChatInput
+          value={inputMessage}
+          onChange={setInputMessage}
+          onSend={handleSendMessage}
+          isLoading={isProcessing}
+        />
+      </div>
+    </div>
   );
 }
 
