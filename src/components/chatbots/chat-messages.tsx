@@ -5,7 +5,6 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import TypingIndicator from './typing-indicator';
 import { User } from 'lucide-react';
-import remarkBreaks from 'remark-breaks';
 import { Message } from '@/lib/types';
 
 interface ChatMessagesProps {
@@ -44,11 +43,9 @@ export function ChatMessages({
                 message.role === 'customer' ? 'flex-row-reverse' : 'flex-row'
               )}
             >
-              <div
-                className={`flex-shrink-0 w-8 h-8 rounded-full overflow-hidden`}
-              >
+              <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
                 {message.role === 'customer' ? (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center ">
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                     <User className="w-4 h-4 text-gray-500" />
                   </div>
                 ) : (
@@ -61,7 +58,7 @@ export function ChatMessages({
               </div>
               <div
                 className={cn(
-                  'rounded-lg px-4 py-2 max-w-[80%]',
+                  'rounded-lg px-4 py-2 max-w-[80%] markdown-container',
                   message.role === 'customer'
                     ? 'bg-blue-500 text-white'
                     : isErrorMessage(message.content)
@@ -70,65 +67,67 @@ export function ChatMessages({
                 )}
               >
                 <div className="prose prose-sm sm:prose lg:prose-lg prose-blue max-w-none">
-                  <div className="leading-relaxed space-y-4">
-                    <ReactMarkdown
-                      children={message.content}
-                      remarkPlugins={[remarkGfm, remarkBreaks]}
-                      rehypePlugins={[rehypeHighlight]}
-                      components={{
-                        h1: ({ children }) => (
-                          <h1 className="text-xl font-semibold text-gray-900">
-                            {children}
-                          </h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className="text-lg font-semibold text-gray-900">
-                            {children}
-                          </h2>
-                        ),
-                        p: ({ children }) => (
-                          <p
-                            className={cn(
-                              message.role === 'customer'
-                                ? 'text-white'
-                                : isErrorMessage(message.content)
-                                ? 'text-red-600'
-                                : 'text-gray-800'
-                            )}
-                          >
-                            {children}
-                          </p>
-                        ),
-                        a: ({ href, children }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 underline hover:text-blue-800"
-                          >
-                            {children}
-                          </a>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="list-disc list-inside space-y-1 text-gray-800 pl-2">
-                            {children}
-                          </ul>
-                        ),
-                        li: ({ children }) => (
-                          <li className="pl-1">{children}</li>
-                        ),
-                      }}
-                    />
+                  <div className="leading-relaxed">
+                    {message.content.split('||').map((line, index) => (
+                      <ReactMarkdown
+                        key={index}
+                        children={line.trim()}
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        components={{
+                          h1: ({ children }) => (
+                            <h1 className="text-xl font-semibold text-gray-900">
+                              {children}
+                            </h1>
+                          ),
+                          h2: ({ children }) => (
+                            <h2 className="text-lg font-semibold text-gray-900">
+                              {children}
+                            </h2>
+                          ),
+                          p: ({ children }) => (
+                            <p
+                              className={cn(
+                                'text-sm leading-[18px] whitespace-pre-wrap',
+                                message.role === 'customer'
+                                  ? 'text-white'
+                                  : isErrorMessage(message.content)
+                                  ? 'text-red-600'
+                                  : 'text-gray-800',
+                                'mb-2' // 8px margin-bottom (2 * 4px in Tailwind)
+                              )}
+                            >
+                              {children}
+                            </p>
+                          ),
+                          a: ({ href, children }) => (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline hover:text-blue-800 break-words text-sm"
+                            >
+                              {children}
+                            </a>
+                          ),
+                          ul: ({ children }) => (
+                            <ul className="list-disc list-inside space-y-1 text-gray-800 pl-2">
+                              {children}
+                            </ul>
+                          ),
+                          li: ({ children }) => (
+                            <li className="pl-1">{children}</li>
+                          ),
+                        }}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
           </div>
         ))}
-
-        {/* Show typing indicator when processing but not streaming yet */}
         {isProcessing && !streamingMessage && <TypingIndicator />}
-
         <div ref={messagesEndRef} />
       </div>
     </div>
