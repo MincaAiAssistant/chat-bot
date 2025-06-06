@@ -29,32 +29,9 @@ function App() {
   const [chatId, setChatId] = useState<string | null>(() =>
     sessionStorage.getItem('chatId')
   );
-
-  useEffect(() => {
-    const initializeChatId = async () => {
-      if (!sessionStorage.getItem('chatId')) {
-        try {
-          const { chatId } = await createChatId();
-          sessionStorage.setItem('chatId', chatId);
-          setChatId(chatId);
-        } catch (error) {
-          console.error('Failed to create chatId:', error);
-          // Optionally set a fallback or error message
-          setMessages((prev) => [
-            ...prev,
-            {
-              messageid: `error-${Date.now()}`,
-              created_at: new Date(),
-              role: 'agent',
-              content: 'Failed to initialize chat. Please try again.',
-            },
-          ]);
-        }
-      }
-    };
-    initializeChatId();
-  }, []);
-
+  const [isChatInitialized] = useState<boolean>(() => {
+    return !!sessionStorage.getItem('chatId');
+  });
   const {
     data: messagesData,
     isLoading: isLoadingMessages,
@@ -67,7 +44,7 @@ function App() {
       }
       return getChatMessages(chatId);
     },
-    enabled: !!chatId,
+    enabled: !!chatId && isChatInitialized,
     refetchOnMount: true,
     staleTime: 0,
   });
@@ -85,12 +62,13 @@ function App() {
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
 
-    const sessionChatId = sessionStorage.getItem('chatId');
+    let sessionChatId = sessionStorage.getItem('chatId');
     if (!sessionChatId) {
       try {
-        const { chatId } = await createChatId();
-        sessionStorage.setItem('chatId', chatId);
-        setChatId(chatId);
+        const { chatId: newChatId } = await createChatId();
+        sessionChatId = newChatId;
+        sessionStorage.setItem('chatId', sessionChatId);
+        setChatId(sessionChatId);
       } catch {
         setMessages((prev) => [
           ...prev,
