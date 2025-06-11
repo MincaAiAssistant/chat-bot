@@ -67,7 +67,7 @@ export function ChatMessages({
                 )}
               >
                 <div className="prose prose-sm sm:prose lg:prose-lg prose-blue max-w-none">
-                  <div className="leading-relaxed">
+                  <div className="leading-relaxed !text-sm">
                     {message.content.split('||').map((line, index) => (
                       <ReactMarkdown
                         key={index}
@@ -94,7 +94,7 @@ export function ChatMessages({
                                   : isErrorMessage(message.content)
                                   ? 'text-red-600'
                                   : 'text-gray-800',
-                                'mb-2'
+                                message.role === 'customer' ? '' : 'mb-2'
                               )}
                             >
                               {children}
