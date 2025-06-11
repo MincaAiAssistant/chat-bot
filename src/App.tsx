@@ -11,6 +11,9 @@ import {
   getChatMessages,
 } from './services/client-assistant-services';
 
+const firstMessage =
+  'Bienvenue 👋 ! Je suis SofIA, l’assistante virtuelle de la Chambre de Commerce et d’Industrie Franco-mexicaine. Comment puis-je vous aider ? || ¡Bienvenido 👋! Soy SofIA, la asistente virtual de la Cámara de Comercio e Industria Franco-Mexicana. ¿En qué puedo ayudarle?';
+
 function App() {
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([
@@ -18,8 +21,7 @@ function App() {
       messageid: `temp-${Date.now()}`,
       created_at: new Date(),
       role: 'agent',
-      content:
-        "Bienvenue 👋 ! Je suis l'assistant virtuel de la Chambre de Commerce et d'Industrie Franco-mexicaine. Comment puis-je vous aider? || ¡Bienvenido 👋! Soy el asistente virtual de la Cámara de Comercio e Industria Franco-Mexicana. ¿En qué puedo ayudarle?",
+      content: firstMessage,
     },
   ]);
   const [streamingMessage, setStreamingMessage] = useState<Message | null>(
@@ -163,8 +165,7 @@ function App() {
         messageid: `temp-${Date.now()}`,
         created_at: new Date(),
         role: 'agent',
-        content:
-          "Bienvenue 👋 ! Je suis l'assistant virtuel de la Chambre de Commerce et d'Industrie Franco-mexicaine. Comment puis-je vous aider? || ¡Bienvenido 👋! Soy el asistente virtual de la Cámara de Comercio e Industria Franco-Mexicana. ¿En qué puedo ayudarle?",
+        content: firstMessage,
       };
       setMessages([welcomeMessage, ...messagesData]);
       setIsProcessing(false);
@@ -199,7 +200,7 @@ function App() {
             <img src="/cci-logo.png" alt="CCI Logo" className="h-6" />
           </div>
           <div className="text-white text-sm font-semibold">
-            Assistant CCI France México
+            SofIA - Assistant CCI France México
           </div>
         </div>
       </div>

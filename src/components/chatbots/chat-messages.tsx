@@ -94,7 +94,7 @@ export function ChatMessages({
                                   : isErrorMessage(message.content)
                                   ? 'text-red-600'
                                   : 'text-gray-800',
-                                'mb-2' // 8px margin-bottom (2 * 4px in Tailwind)
+                                'mb-2'
                               )}
                             >
                               {children}
@@ -106,6 +106,11 @@ export function ChatMessages({
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 underline hover:text-blue-800 break-words text-sm"
+                              onClick={() => {
+                                if (href?.includes('calendly.com')) {
+                                  console.log('Calendly link clicked:', href);
+                                }
+                              }}
                             >
                               {children}
                             </a>
