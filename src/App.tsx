@@ -9,12 +9,14 @@ import {
   createChatId,
   createMessage,
   getChatMessages,
+  storeCanlendlyLink,
 } from './services/client-assistant-services';
 
 const firstMessage =
   'Bienvenue 👋 ! Je suis SofIA, l’assistante virtuelle de la Chambre de Commerce et d’Industrie Franco-mexicaine. Comment puis-je vous aider ? || ¡Bienvenido 👋! Soy SofIA, la asistente virtual de la Cámara de Comercio e Industria Franco-Mexicana. ¿En qué puedo ayudarle?';
 
 function App() {
+  const [hasCalendlyLink, setHasCalendlyLink] = useState<boolean>(false);
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -60,7 +62,21 @@ function App() {
       user_message: string;
     }) => createMessage(chatId, user_message),
   });
-
+  const storeCalendlyLinkMutation = useMutation({
+    mutationFn: ({
+      chatId,
+      calendy_url,
+    }: {
+      chatId: string;
+      calendy_url: string;
+    }) => storeCanlendlyLink(chatId, calendy_url),
+    onSuccess: () => {
+      setHasCalendlyLink(true);
+    },
+    onError: (error) => {
+      console.error('Failed to store Calendly link:', error);
+    },
+  });
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
 
@@ -71,6 +87,7 @@ function App() {
         sessionChatId = newChatId;
         sessionStorage.setItem('chatId', sessionChatId);
         setChatId(sessionChatId);
+        setHasCalendlyLink(false);
       } catch {
         setMessages((prev) => [
           ...prev,
@@ -105,6 +122,16 @@ function App() {
         chatId: chatIdToUse,
       });
       const fullContent = aiResponse.reply;
+      const calendlyUrlMatch = fullContent.match(
+        /(https?:\/\/calendly\.com\/[^\s]+)/
+      );
+      const calendyUrl = calendlyUrlMatch ? calendlyUrlMatch[0] : null;
+      if (calendyUrl && !hasCalendlyLink) {
+        storeCalendlyLinkMutation.mutate({
+          chatId: chatIdToUse,
+          calendy_url: calendyUrl,
+        });
+      }
 
       const messageId = `stream-${Date.now()}`;
       let currentIndex = 0;
@@ -216,6 +243,7 @@ function App() {
               messages={messages}
               streamingMessage={streamingMessage}
               isProcessing={isProcessing}
+              chatid={chatId || ''}
             />
           </div>
         )}

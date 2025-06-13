@@ -6,20 +6,26 @@ import rehypeHighlight from 'rehype-highlight';
 import TypingIndicator from './typing-indicator';
 import { User } from 'lucide-react';
 import { Message } from '@/lib/types';
+import { useMutation } from '@tanstack/react-query';
+import { trackCalendlyClick } from '@/services/client-assistant-services';
 
 interface ChatMessagesProps {
   messages: Message[];
   streamingMessage: Message | null;
   isProcessing: boolean;
+  chatid: string;
 }
 
 export function ChatMessages({
   messages,
   streamingMessage,
   isProcessing,
+  chatid,
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  const trackCalendly = useMutation({
+    mutationFn: () => trackCalendlyClick(chatid),
+  });
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingMessage?.content]);
@@ -108,7 +114,7 @@ export function ChatMessages({
                               className="text-blue-600 underline hover:text-blue-800 break-words text-sm"
                               onClick={() => {
                                 if (href?.includes('calendly.com')) {
-                                  console.log('Calendly link clicked:', href);
+                                  trackCalendly.mutate();
                                 }
                               }}
                             >

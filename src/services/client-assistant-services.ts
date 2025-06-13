@@ -53,4 +53,43 @@ const lastActivity = async (chatId: string): Promise<{ status: string }> => {
 
   return response.json();
 };
-export { createMessage, createChatId, getChatMessages, lastActivity };
+const storeCanlendlyLink = async (chatid: string, calendy_url: string) => {
+  const response = await fetch(`${BASE_URL}/link/calendy`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ chatid, calendy_url }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+};
+
+const trackCalendlyClick = async (chatid: string) => {
+  const response = await fetch(
+    `${BASE_URL}/link/calendy/${chatid}/click-track`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export {
+  createMessage,
+  createChatId,
+  getChatMessages,
+  lastActivity,
+  storeCanlendlyLink,
+  trackCalendlyClick,
+};
